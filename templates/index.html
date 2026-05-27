@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div class="hero-content">
+    <h1>Добро пожаловать в КнигоЛов</h1>
+    <p>Ваша цифровая библиотека с тысячами книг на любой вкус</p>
+    <a href="{{ url_for('books_list') }}" class="btn">
+      <i class="fas fa-search"></i> Найти книгу
+    </a>
+  </div>
+</div>
+
+<div class="sections">
+  <section class="section">
+    <h2><i class="fas fa-star"></i> Новинки</h2>
+    <div class="books-grid">
+      {% for book in new_books %}
+      <div class="book-card">
+        <div class="book-cover">
+          {% if book.cover_url %}
+          <img src="{{ book.cover_url }}" alt="{{ book.title }}">
+          {% else %}
+          <div class="no-cover">
+            <i class="fas fa-book"></i>
+          </div>
+          {% endif %}
+        </div>
+        <div class="book-info">
+          <h3>{{ book.title }}</h3>
+          <p class="book-authors">
+            {% for author in book.authors %}
+            {{ author.last_name }} {{ author.first_name[0] }}.{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+          <div class="book-meta">
+                        <span class="copies {% if book.available_copies > 0 %}available{% else %}unavailable{% endif %}">
+                            <i class="fas fa-copy"></i> {{ book.available_copies }} из {{ book.total_copies }}
+                        </span>
+          </div>
+          <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-small">
+            Подробнее
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <h2><i class="fas fa-fire"></i> Популярные книги</h2>
+    <div class="books-grid">
+      {% for book in popular_books %}
+      <div class="book-card">
+        <div class="book-cover">
+          {% if book.cover_url %}
+          <img src="{{ book.cover_url }}" alt="{{ book.title }}">
+          {% else %}
+          <div class="no-cover">
+            <i class="fas fa-book"></i>
+          </div>
+          {% endif %}
+        </div>
+        <div class="book-info">
+          <h3>{{ book.title }}</h3>
+          <p class="book-authors">
+            {% for author in book.authors %}
+            {{ author.last_name }} {{ author.first_name[0] }}.{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+          <div class="book-meta">
+                        <span class="copies {% if book.available_copies > 0 %}available{% else %}unavailable{% endif %}">
+                            <i class="fas fa-copy"></i> {{ book.available_copies }} из {{ book.total_copies }}
+                        </span>
+          </div>
+          <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-small">
+            Подробнее
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+
+{% endblock %}

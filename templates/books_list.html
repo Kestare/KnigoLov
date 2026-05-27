@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Книги - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-book"></i> Каталог книг</h1>
+  {% if current_user.is_librarian %}
+  <a href="{{ url_for('book_add') }}" class="btn">
+    <i class="fas fa-plus"></i> Добавить книгу
+  </a>
+  {% endif %}
+</div>
+
+<div class="search-filters">
+  <form method="GET" class="filter-form">
+    <div class="search-box">
+      <input type="text"
+             name="search"
+             placeholder="Поиск по названию или ISBN..."
+             value="{{ request.args.get('search', '') }}"
+             class="form-control">
+      <button type="submit" class="btn">
+        <i class="fas fa-search"></i>
+      </button>
+    </div>
+
+    <div class="filter-grid">
+      <div class="filter-group">
+        <label>Автор:</label>
+        <select name="author_id" class="form-control">
+          <option value="">Все авторы</option>
+          {% for author in authors %}
+          <option value="{{ author.id }}"
+                  {% if request.args.get('author_id')|int == author.id %}selected{% endif %}>
+          {{ author.last_name }} {{ author.first_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Жанр:</label>
+        <select name="genre_id" class="form-control">
+          <option value="">Все жанры</option>
+          {% for genre in genres %}
+          <option value="{{ genre.id }}"
+                  {% if request.args.get('genre_id')|int == genre.id %}selected{% endif %}>
+          {{ genre.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="checkbox-label">
+          <input type="checkbox"
+                 name="available_only"
+                 value="1"
+                 {% if request.args.get('available_only') %}checked{% endif %}>
+          Только доступные
+        </label>
+      </div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn">
+          <i class="fas fa-filter"></i> Применить
+        </button>
+        <a href="{{ url_for('books_list') }}" class="btn">
+          <i class="fas fa-times"></i> Сброс
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% if books %}
+<div class="books-grid">
+  {% for book in books %}
+  <div class="book-card">
+    <div class="book-cover-wrapper">
+      <div class="book-cover">
+        {% if book.cover_url %}
+        <img src="{{ book.cover_url }}" alt="{{ book.title }}">
+        {% else %}
+        <div class="no-cover">
+          <i class="fas fa-book"></i>
+        </div>
+        {% endif %}
+      </div>
+      <div class="book-status">
+        <span class="copies {% if book.available_copies > 0 %}available{% else %}unavailable{% endif %}">
+          <i class="fas fa-copy"></i> {{ book.available_copies }}/{{ book.total_copies }}
+        </span>
+      </div>
+    </div>
+    <div class="book-info">
+      <h3>{{ book.title }}</h3>
+      <p class="book-authors">
+        {% for author in book.authors %}
+        {{ author.last_name }} {{ author.first_name[0] }}.{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </p>
+      <div class="book-genres">
+        {% for genre in book.genres[:3] %}
+        <span class="genre-tag">{{ genre.name }}</span>
+        {% endfor %}
+      </div>
+      <div class="book-actions">
+        <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-small">
+          <i class="fas fa-info-circle"></i> Подробнее
+        </a>
+        {% if current_user.is_librarian %}
+        <a href="{{ url_for('book_edit', book_id=book.id) }}" class="btn-small">
+          <i class="fas fa-edit"></i> Редактировать
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="fas fa-book fa-3x"></i>
+  <h3>Книги не найдены</h3>
+  <p>Попробуйте изменить параметры поиска</p>
+</div>
+{% endif %}
+
+{% endblock %}

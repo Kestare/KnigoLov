@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}КнигоЛов{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+<body>
+<nav class="navbar" id="navbar">
+    <div class="nav-container">
+        <a href="{{ url_for('index') }}" class="logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}"
+                 alt="КнигоЛов"
+                 height="100"
+                 style="margin-right: 10px;">
+            <span style="font-size: 1.5rem; font-weight: bold;">
+        КнигоЛов
+        </span>
+        </a>
+
+        <div class="nav-links">
+            <a href="{{ url_for('books_list') }}">Книги</a>
+            {% if current_user.is_authenticated %}
+            {% if current_user.is_librarian %}
+            <a href="{{ url_for('admin_panel') }}">Панель управления</a>
+            <a href="{{ url_for('reservations_list') }}">Бронирования</a>
+            <a href="{{ url_for('admin_fines') }}">Штрафы</a>
+            {% else %}
+            <a href="{{ url_for('reservations_list') }}">Мои бронирования</a>
+            <a href="{{ url_for('profile') }}">Личный кабинет</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Выход
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}">Вход</a>
+            <a href="{{ url_for('register') }}">Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <p>&copy; 2026 КнигоЛов - Библиотечная система</p>
+        <p>Продукт в разработке</p>
+    </div>
+</footer>
+
+<script>
+    // Автоматическое скрытие flash-сообщений через 5 секунд
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.querySelectorAll('.flash');
+        flashMessages.forEach(flash => {
+            setTimeout(() => {
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 300);
+            }, 5000);
+        });
+    });
+
+    // Эффект уменьшения шапки при скролле
+    window.addEventListener('scroll', function() {
+        const navbar = document.getElementById('navbar');
+        if (window.scrollY > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+    });
+</script>
+</body>
+</html>

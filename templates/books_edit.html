@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать книгу - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-edit"></i> Редактировать книгу</h1>
+    <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+</div>
+
+<div class="form-container-wide">
+    <form method="POST" action="{{ url_for('book_edit', book_id=book.id) }}">
+        <div class="form-section">
+            <h3><i class="fas fa-info-circle"></i> Основная информация</h3>
+
+            <div class="form-group">
+                <label for="title">Название книги *</label>
+                <input type="text" id="title" name="title" class="form-control"
+                       value="{{ form_data.title if form_data else book.title }}" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="isbn">ISBN</label>
+                    <input type="text" id="isbn" name="isbn" class="form-control"
+                           value="{{ form_data.isbn if form_data else book.isbn or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="publication_year">Год издания</label>
+                    <input type="number" id="publication_year" name="publication_year" class="form-control"
+                           value="{{ form_data.publication_year if form_data else book.publication_year or '' }}"
+                           min="1000" max="{{ now.year }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="total_copies">Всего экземпляров *</label>
+                    <input type="number" id="total_copies" name="total_copies" class="form-control"
+                           value="{{ form_data.total_copies if form_data else book.total_copies }}" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="available_copies">Доступно экземпляров *</label>
+                    <input type="number" id="available_copies" name="available_copies" class="form-control"
+                           value="{{ form_data.available_copies if form_data else book.available_copies }}" min="0" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="cover_url">Ссылка на обложку</label>
+                <input type="url" id="cover_url" name="cover_url" class="form-control"
+                       value="{{ form_data.cover_url if form_data else book.cover_url or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание</label>
+                <textarea id="description" name="description" class="form-control" rows="4">{{ form_data.description if form_data else book.description or '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-user-edit"></i> Авторы</h3>
+
+            <!-- Выбор существующих авторов -->
+            <label>Выберите авторов:</label>
+            <div class="multi-select">
+                {% for author in authors %}
+                <label class="multi-select-item">
+                    <input type="checkbox" name="author_ids" value="{{ author.id }}"
+                           {% if form_data %}
+                           {% if author.id|string in form_data.getlist('author_ids') %}checked{% endif %}
+                    {% else %}
+                    {% if author in book.authors %}checked{% endif %}
+                    {% endif %}>
+                    <span>{{ author.last_name }} {{ author.first_name }} {{ author.middle_name or '' }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <!-- Добавление новых авторов -->
+            <div class="form-group">
+                <label for="new_authors">Или добавьте новых авторов (по одному на строку, формат: Фамилия Имя Отчество)</label>
+                <textarea id="new_authors" name="new_authors" class="form-control" rows="3"
+                          placeholder="Толстой Лев Николаевич&#10;Достоевский Федор Михайлович">{{ form_data.new_authors if form_data else '' }}</textarea>
+                <small class="form-text">Каждый автор на новой строке. Отчество можно не указывать.</small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-tags"></i> Жанры</h3>
+
+            <!-- Выбор существующих жанров -->
+            <label>Выберите жанры:</label>
+            <div class="multi-select">
+                {% for genre in genres %}
+                <label class="multi-select-item">
+                    <input type="checkbox" name="genre_ids" value="{{ genre.id }}"
+                           {% if form_data %}
+                           {% if genre.id|string in form_data.getlist('genre_ids') %}checked{% endif %}
+                    {% else %}
+                    {% if genre in book.genres %}checked{% endif %}
+                    {% endif %}>
+                    <span>{{ genre.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <!-- Добавление новых жанров -->
+            <div class="form-group">
+                <label for="new_genres">Или добавьте новые жанры (по одному на строку)</label>
+                <textarea id="new_genres" name="new_genres" class="form-control" rows="2"
+                          placeholder="Фантастика&#10;Детектив">{{ form_data.new_genres if form_data else '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-print"></i> Издательства</h3>
+
+            <!-- Выбор существующих издательств -->
+            <label>Выберите издательства:</label>
+            <div class="multi-select">
+                {% for publisher in publishers %}
+                <label class="multi-select-item">
+                    <input type="checkbox" name="publisher_ids" value="{{ publisher.id }}"
+                           {% if form_data %}
+                           {% if publisher.id|string in form_data.getlist('publisher_ids') %}checked{% endif %}
+                    {% else %}
+                    {% if publisher in book.publishers %}checked{% endif %}
+                    {% endif %}>
+                    <span>{{ publisher.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <!-- Добавление новых издательств -->
+            <div class="form-group">
+                <label for="new_publishers">Или добавьте новые издательства (по одному на строку)</label>
+                <textarea id="new_publishers" name="new_publishers" class="form-control" rows="2"
+                          placeholder="Эксмо&#10;АСТ">{{ form_data.new_publishers if form_data else '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

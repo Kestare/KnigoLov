@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Бронирования - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>
+    <i class="fas fa-bookmark"></i>
+    {% if current_user.is_librarian %}Все бронирования{% else %}Мои бронирования{% endif %}
+  </h1>
+
+  {% if current_user.is_librarian %}
+  <div class="status-filters">
+    <a href="{{ url_for('reservations_list') }}"
+       class="btn-small {% if not request.args.get('status') %}active{% endif %}">
+      Все
+    </a>
+    <a href="{{ url_for('reservations_list', status='active') }}"
+       class="btn-small {% if request.args.get('status') == 'active' %}active{% endif %}">
+      Активные
+    </a>
+    <a href="{{ url_for('reservations_list', status='issued') }}"
+       class="btn-small {% if request.args.get('status') == 'issued' %}active{% endif %}">
+      Выданные
+    </a>
+    <a href="{{ url_for('reservations_list', status='closed') }}"
+       class="btn-small {% if request.args.get('status') == 'closed' %}active{% endif %}">
+      Закрытые
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% if reservations %}
+<div class="reservations-list">
+  {% for reservation in reservations %}
+  <div class="reservation-card">
+    <div class="reservation-header">
+      <div class="reservation-id">
+        <strong>#{{ reservation.id }}</strong>
+        <span class="status status-{{ reservation.status }}">
+                    {% if reservation.status == 'active' %}Активная
+                    {% elif reservation.status == 'issued' %}Выдана
+                    {% elif reservation.status == 'closed' %}Закрыта
+                    {% elif reservation.status == 'cancelled' %}Отменена
+                    {% elif reservation.status == 'expired' %}Просрочена
+                    {% endif %}
+                </span>
+      </div>
+
+      <div class="reservation-date">
+        <small>Создано: {{ reservation.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+      </div>
+    </div>
+
+    <div class="reservation-body">
+      <div class="book-info">
+        <h3>{{ reservation.book_obj.title }}</h3>
+        <p class="book-authors">
+          {% for author in reservation.book_obj.authors %}
+          {{ author.last_name }} {{ author.first_name[0] }}.{% if not loop.last %}, {% endif %}
+          {% endfor %}
+        </p>
+      </div>
+
+      <div class="user-info">
+        {% if current_user.is_librarian %}
+        <p><strong>Читатель:</strong> {{ reservation.user_rel.last_name }} {{ reservation.user_rel.first_name }}</p>
+        <p><strong>Email:</strong> {{ reservation.user_rel.email }}</p>
+        {% endif %}
+
+        {% set fine_total = namespace(value=0) %}
+        {% for fine in reservation.user_rel.fines %}
+        {% if fine.status == 'active' %}
+        {% set fine_total.value = fine_total.value + fine.amount %}
+        {% endif %}
+        {% endfor %}
+        {% if fine_total.value > 0 %}
+        <p class="has-fine">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Штраф:</strong> {{ fine_total.value }} ₽ (не оплачен)
+        </p>
+        {% endif %}
+
+        {% if reservation.issued_at %}
+        <p><strong>Выдана:</strong> {{ reservation.issued_at.strftime('%d.%m.%Y %H:%M') }}</p>
+        {% endif %}
+
+        {% if reservation.due_date %}
+        <p class="{% if reservation.due_date < today and reservation.status == 'issued' %}text-danger{% endif %}">
+          <strong>Срок возврата:</strong> {{ reservation.due_date.strftime('%d.%m.%Y') }}
+          {% if reservation.due_date < today and reservation.status == 'issued' %}
+          <span class="badge badge-danger">Просрочена</span>
+          {% endif %}
+        </p>
+        {% endif %}
+
+        {% if reservation.returned_at %}
+        <p><strong>Возвращена:</strong> {{ reservation.returned_at.strftime('%d.%m.%Y %H:%M') }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="reservation-actions">
+      {% if current_user.is_librarian %}
+      {% if reservation.status == 'active' %}
+      <form method="POST" action="{{ url_for('issue_book', reservation_id=reservation.id) }}">
+        <button type="submit" class="btn-small btn-success">
+          <i class="fas fa-book"></i> Оформить выдачу
+        </button>
+      </form>
+      {% endif %}
+
+
+      {% if reservation.status == 'issued' %}
+      <form method="POST" action="{{ url_for('return_book', reservation_id=reservation.id) }}">
+        <button type="submit" class="btn-small btn-primary">
+          <i class="fas fa-undo"></i> Оформить возврат
+        </button>
+      </form>
+      {% endif %}
+
+      {% else %}
+      {% if reservation.status == 'active' %}
+      <form method="POST" action="{{ url_for('cancel_reservation', reservation_id=reservation.id) }}"
+            onsubmit="return confirm('Отменить бронирование книги {{ reservation.book_obj.title }}?')"
+            style="display: inline;">
+        <button type="submit" class="btn-small btn-danger">
+          <i class="fas fa-times"></i> Отменить бронь
+        </button>
+      </form>
+      {% endif %}
+      {% endif %}
+
+      <a href="{{ url_for('book_detail', book_id=reservation.book_obj.id) }}" class="btn-small">
+        <i class="fas fa-external-link-alt"></i> К книге
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="fas fa-bookmark fa-3x"></i>
+  <h3>Бронирования не найдены</h3>
+  <p>
+    {% if current_user.is_librarian %}
+    В системе пока нет бронирований
+    {% else %}
+    У вас пока нет бронирований. <a href="{{ url_for('books_list') }}">Найти книгу</a>
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+
+{% endblock %}

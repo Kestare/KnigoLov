@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="book-detail">
+  <div class="book-detail-cover">
+    {% if book.cover_url and book.cover_url.startswith('http') %}
+    <img src="{{ book.cover_url }}" alt="{{ book.title }}"
+         onerror="this.style.display='none'; this.parentElement.querySelector('.no-cover-large').style.display='flex';">
+    <div class="no-cover-large" style="display: none;">
+      <i class="fas fa-book"></i>
+    </div>
+    {% else %}
+    <div class="no-cover-large">
+      <i class="fas fa-book"></i>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="book-detail-info">
+    <h1>{{ book.title }}</h1>
+
+    <div class="book-availability">
+      <span class="availability-badge {% if book.available_copies > 0 %}available{% else %}unavailable{% endif %}">
+        {% if book.available_copies > 0 %}
+          <i class="fas fa-check-circle"></i> Доступно: {{ book.available_copies }} экз.
+        {% else %}
+          <i class="fas fa-times-circle"></i> Нет в наличии
+        {% endif %}
+      </span>
+    </div>
+
+    <ul class="book-meta-list">
+      <li><strong>Авторы:</strong>
+        {% for author in book.authors %}
+        {{ author.last_name }} {{ author.first_name }}{% if author.middle_name %} {{ author.middle_name }}{% endif %}{% if not loop.last %}, {% endif %}
+        {% else %}
+        <em>не указаны</em>
+        {% endfor %}
+      </li>
+
+      <li><strong>Жанры:</strong>
+        {% for genre in book.genres %}
+        {{ genre.name }}{% if not loop.last %}, {% endif %}
+        {% else %}
+        <em>не указаны</em>
+        {% endfor %}
+      </li>
+
+      <li><strong>Издательства:</strong>
+        {% for publisher in book.publishers %}
+        {{ publisher.name }}{% if not loop.last %}, {% endif %}
+        {% else %}
+        <em>не указаны</em>
+        {% endfor %}
+      </li>
+
+      {% if book.isbn %}
+      <li><strong>ISBN:</strong> {{ book.isbn }}</li>
+      {% endif %}
+
+      {% if book.publication_year %}
+      <li><strong>Год издания:</strong> {{ book.publication_year }}</li>
+      {% endif %}
+
+      <li><strong>Всего экземпляров:</strong> {{ book.total_copies }}</li>
+      <li><strong>Доступно экземпляров:</strong> {{ book.available_copies }}</li>
+    </ul>
+
+    {% if book.description %}
+    <div class="book-description">
+      <h3>Описание</h3>
+      <p>{{ book.description }}</p>
+    </div>
+    {% endif %}
+
+    <div class="book-actions">
+      {% if current_user.is_authenticated %}
+      {% if current_user.is_librarian %}
+      <a href="{{ url_for('book_edit', book_id=book.id) }}" class="btn">
+        <i class="fas fa-edit"></i> Редактировать
+      </a>
+      <form method="POST" action="{{ url_for('book_delete', book_id=book.id) }}"
+            onsubmit="return confirm('Вы уверены, что хотите удалить эту книгу?')"
+            style="display: inline;">
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash"></i> Удалить
+        </button>
+      </form>
+      {% elif can_reserve %}
+      <form method="POST" action="{{ url_for('reserve_book', book_id=book.id) }}" style="display: inline;">
+        <button type="submit" class="btn">
+          <i class="fas fa-bookmark"></i> Забронировать
+        </button>
+      </form>
+      {% endif %}
+      {% else %}
+      <a href="{{ url_for('login') }}" class="btn">
+        <i class="fas fa-sign-in-alt"></i> Войдите для бронирования
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('books_list') }}" class="btn">
+        <i class="fas fa-arrow-left"></i> Вернуться к списку
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

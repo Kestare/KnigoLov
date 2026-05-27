@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - КнигоЛов{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-tachometer-alt"></i> Панель управления</h1>
+    <div class="welcome">
+        Добро пожаловать, {{ current_user.first_name }}!
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-number">{{ total_books }}</div>
+        <div class="stat-label">Всего книг в фонде</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-number">{{ total_users }}</div>
+        <div class="stat-label">Зарегистрированных читателей</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-bookmark"></i>
+        </div>
+        <div class="stat-number">{{ active_reservations }}</div>
+        <div class="stat-label">Активных бронирований</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-number">{{ overdue_reservations }}</div>
+        <div class="stat-label">Просроченных книг</div>
+    </div>
+</div>
+
+<div class="admin-sections">
+    <section class="admin-section">
+        <div class="section-header">
+            <h2><i class="fas fa-clock"></i> Последние бронирования</h2>
+            <a href="{{ url_for('reservations_list') }}" class="btn-small">
+                <i class="fas fa-list"></i> Все бронирования
+            </a>
+        </div>
+
+        {% if recent_reservations %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Книга</th>
+                    <th>Читатель</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for reservation in recent_reservations %}
+                <tr class="{% if reservation.status == 'active' and has_fine_at_reservation_time(reservation) %}reservation-has-fine{% endif %}">
+                    <td>#{{ reservation.id }}</td>
+                    <td>{{ reservation.book_obj.title|truncate(30) }}</td>
+                    <td>{{ reservation.user_rel.last_name }} {{ reservation.user_rel.first_name|first }}.</td>
+                    <td>
+                        <span class="status status-{{ reservation.status }}">
+                            {% if reservation.status == 'active' %}Активная
+                            {% elif reservation.status == 'issued' %}Выдана
+                            {% elif reservation.status == 'closed' %}Закрыта
+                            {% elif reservation.status == 'cancelled' %}Отменена
+                            {% endif %}
+                        </span>
+                                    {% if reservation.status == 'active' and has_fine_at_reservation_time(reservation) %}
+                                    <span class="fine-badge">
+                            <i class="fas fa-exclamation-triangle"></i> есть штраф
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ reservation.created_at.strftime('%d.%m.%Y') }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if reservation.status == 'active' %}
+                            <form method="POST" action="{{ url_for('issue_book', reservation_id=reservation.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-extra-small">
+                                    <i class="fas fa-book"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            {% if reservation.status == 'issued' %}
+                            <form method="POST" action="{{ url_for('return_book', reservation_id=reservation.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-extra-small">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <a href="{{ url_for('book_detail', book_id=reservation.book_obj.id) }}" class="btn-extra-small">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-bookmark fa-2x"></i>
+            <p>Бронирования отсутствуют</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Секция штрафов -->
+    <section class="admin-section">
+        <div class="section-header">
+            <h2><i class="fas fa-money-bill-wave"></i> Неоплаченные штрафы</h2>
+            <a href="{{ url_for('admin_fines') }}" class="btn-small">
+                <i class="fas fa-list"></i> Все штрафы
+            </a>
+        </div>
+
+        {% if unpaid_fines %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Читатель</th>
+                    <th>Книга</th>
+                    <th>Сумма</th>
+                    <th>Дата</th>
+                    <th>Действие</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for fine in unpaid_fines[:5] %}
+                <tr>
+                    <td>{{ fine.user_obj.last_name }} {{ fine.user_obj.first_name }}</td>
+                    <td>{{ fine.fine_reservation_rel.book_obj.title|truncate(30) }}</td>
+                    <td>{{ fine.amount }} ₽</td>
+                    <td>{{ fine.created_at.strftime('%d.%m.%Y') }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('pay_fine', fine_id=fine.id) }}">
+                            <button type="submit" class="btn-extra-small"
+                                    onclick="return confirm('Отметить как оплаченный?')">
+                                <i class="fas fa-check"></i> Оплачен
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-small">
+            <p>Нет неоплаченных штрафов</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- ПРОСРОЧЕННЫЕ КНИГИ -->
+    <section class="admin-section">
+        <div class="section-header">
+            <h2><i class="fas fa-exclamation-triangle"></i> Просроченные книги</h2>
+            <a href="{{ url_for('reservations_list', status='issued') }}" class="btn-small">
+                <i class="fas fa-list"></i> Все выданные
+            </a>
+        </div>
+
+        {% if overdue_books %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Читатель</th>
+                    <th>Телефон</th>
+                    <th>Книга</th>
+                    <th>Дата выдачи</th>
+                    <th>Срок возврата</th>
+                    <th>Просрочка</th>
+                    <th>Действие</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for reservation in overdue_books %}
+                <tr class="overdue-row">
+                    <td>{{ reservation.user_rel.last_name }} {{ reservation.user_rel.first_name }}</td>
+                    <td>
+                        {% if reservation.user_rel.phone %}
+                        <a href="tel:{{ reservation.user_rel.phone }}" class="phone-link">
+                            <i class="fas fa-phone"></i> {{ reservation.user_rel.phone }}
+                        </a>
+                        {% else %}
+                        <span class="no-phone">нет телефона</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ reservation.book_obj.title }}</td>
+                    <td>{{ reservation.issued_at.strftime('%d.%m.%Y') if reservation.issued_at else '-' }}</td>
+                    <td>{{ reservation.due_date.strftime('%d.%m.%Y') }}</td>
+                    <td class="overdue-days">
+                        <strong>{{ (today - reservation.due_date).days }} дн.</strong>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('return_book', reservation_id=reservation.id) }}" style="display: inline;">
+                            <button type="submit" class="btn-small"
+                                    onclick="return confirm('Оформить возврат книги?')">
+                                <i class="fas fa-undo"></i> Вернуть
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-small">
+            <i class="fas fa-check-circle"></i> Нет просроченных книг
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
